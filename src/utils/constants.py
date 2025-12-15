@@ -12,13 +12,18 @@ N_FFT = 512
 HOP_LENGTH = 256
 WIN_LENGTH = 512
 
-ROOT = Path(__file__).parent.parent.parent.resolve() # root folder
+ROOT = Path(__file__).parent.parent.parent.resolve() # Root folder
 
-DATA_DIR = ROOT / "data"
+DATA_TRAIN_DIR = ROOT / "data" / "train"
+CLEAN_DIR = DATA_TRAIN_DIR / "speech"
+NOISE_DIR = DATA_TRAIN_DIR / "noise"
 
-CLEAN_DIR = DATA_DIR / "speech"
-NOISE_DIR = DATA_DIR / "noise"
-MODEL_DIR = DATA_DIR / "models"
+DATA_TEST_DIR = ROOT / "data" / "test"
+RAW_TEST_DIR = DATA_TEST_DIR / "raw" # Raw .wav files for testing
+CLEAN_TEST_DIR = DATA_TEST_DIR / "speech" # .pt converted from .wav files
+NOISE_TEST_DIR = DATA_TRAIN_DIR / "noise" # Using train noise for test as well
+
+MODEL_DIR = ROOT / "data" / "models"
 
 LOG_DIR = ROOT / "experiments" / "logs"
 CHECKPOINT_DIR = ROOT / "experiments" / "checkpoints"
