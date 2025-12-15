@@ -25,10 +25,11 @@ The DEBUG flag enables saving intermediate audio files and printing debug inform
 """
 
 class SpeechNoiseDataset(Dataset):
-    def __init__(self, clean_dir, noise_dir, snr_db=5.0):
+    def __init__(self, clean_dir, noise_dir, snr_db=5.0, mode='train'):
         self.clean_files = glob.glob(os.path.join(clean_dir, '*.pt'))
         self.noise_files = glob.glob(os.path.join(noise_dir, '*.pt'))
         self.snr_db = snr_db
+        self.mode = mode
         
         # Pre-load noise files to memory to speed up training (optional, good for small noise sets)
         self.noises = []
@@ -58,6 +59,13 @@ class SpeechNoiseDataset(Dataset):
                           return_complex=True)
         # Magnitude = abs(complex)
         return stft.abs()
+    
+    def _get_stft_phase(self, tensor):
+        window = torch.hann_window(WIN_LENGTH, device=tensor.device)
+        stft = torch.stft(tensor, n_fft=N_FFT, hop_length=HOP_LENGTH, 
+                          win_length=WIN_LENGTH, window=window, 
+                          return_complex=True)
+        return torch.angle(stft)
 
     def __getitem__(self, idx):
         # 1. Load Clean
@@ -127,6 +135,9 @@ class SpeechNoiseDataset(Dataset):
         clean_mag = self._get_stft_magnitude(clean_audio)
         noise_mag = self._get_stft_magnitude(noise_scaled)
         mix_mag   = self._get_stft_magnitude(mixture)
+
+        if self.mode == 'test':
+            mix_phase = self._get_stft_phase(mixture)
         
         # Log(Mag^2) = 2 * Log(Mag)
         # Adding small epsilon to prevent log(0)
@@ -167,4 +178,8 @@ class SpeechNoiseDataset(Dataset):
 
         # Input shape needs to be [Channels, Freq, Time] for CNN
         # Current shape is [Freq, Time], unsqueeze to add channel
-        return features.unsqueeze(0), ibm.unsqueeze(0)
+        
+        if self.mode == 'test':
+            return features.unsqueeze(0), ibm.unsqueeze(0), mix_mag.unsqueeze(0), mix_phase.unsqueeze(0)
+        else:
+            return features.unsqueeze(0), ibm.unsqueeze(0)

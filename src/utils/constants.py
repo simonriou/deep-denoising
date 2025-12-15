@@ -22,6 +22,7 @@ DATA_TEST_DIR = ROOT / "data" / "test"
 RAW_TEST_DIR = DATA_TEST_DIR / "raw" # Raw .wav files for testing
 CLEAN_TEST_DIR = DATA_TEST_DIR / "speech" # .pt converted from .wav files
 NOISE_TEST_DIR = DATA_TRAIN_DIR / "noise" # Using train noise for test as well
+NOISE_ENHANCED_DIR = DATA_TEST_DIR / "enhanced" # Enhanced .wav files after denoising
 
 MODEL_DIR = ROOT / "data" / "models"
 
