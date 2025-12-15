@@ -51,7 +51,9 @@ def train(session_name: str):
     # Create checkpoint directory for this session
     checkpoints_dir = os.path.join(CHECKPOINT_DIR, session_name)
     os.makedirs(checkpoints_dir, exist_ok=True)
-    log_file_path = os.path.join(LOG_DIR, f"{session_name}_training_log.csv")
+    log_file_dir = os.path.join(LOG_DIR, session_name)
+    os.makedirs(log_file_dir, exist_ok=True)
+    log_file_path = os.path.join(log_file_dir, "training_log.csv")
 
     # Write CSV header
     with open(log_file_path, mode='w', newline="") as f:
@@ -90,7 +92,7 @@ def train(session_name: str):
 
         # If final epoch, also save final model
         if epoch == EPOCHS - 1:
-            final_model_path = os.path.join(MODEL_DIR, f"{session_name}_final.pth")
+            final_model_path = os.path.join(MODEL_DIR, f"{session_name}.pth")
             torch.save(model.state_dict(), final_model_path)
 
     print("Training Complete.")

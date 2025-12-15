@@ -180,6 +180,6 @@ class SpeechNoiseDataset(Dataset):
         # Current shape is [Freq, Time], unsqueeze to add channel
         
         if self.mode == 'test':
-            return features.unsqueeze(0), ibm.unsqueeze(0), mix_mag.unsqueeze(0), mix_phase.unsqueeze(0)
+            return features.unsqueeze(0), ibm.unsqueeze(0), mix_mag.unsqueeze(0), mix_phase.unsqueeze(0), clean_audio
         else:
             return features.unsqueeze(0), ibm.unsqueeze(0)
