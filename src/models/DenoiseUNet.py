@@ -13,6 +13,9 @@ The U-Net consists of:
 - Decoder: 3 upsampling blocks, each with Conv2D -> BatchNorm -> ReLU, followed by interpolation upsampling.
 - Skip Connections: Concatenation of encoder outputs to decoder inputs at each level.
 - Output Layer: A final Conv2D layer followed by a Sigmoid activation to produce the mask in [0, 1].
+
+Switched from BatchNorm to GroupNorm, potentially allowing for better generalization across varying speakers.
+More info: https://docs.pytorch.org/docs/stable/generated/torch.nn.GroupNorm.html
 """
 
 class DenoiseUNet(nn.Module):
@@ -45,12 +48,13 @@ class DenoiseUNet(nn.Module):
         """Helper to create a Conv -> BatchNorm -> ReLU block"""
         return nn.Sequential(
             nn.Conv2d(in_channels, out_channels, kernel_size=3, padding=1),
-            nn.BatchNorm2d(out_channels),
+            # nn.BatchNorm2d(out_channels),
+            nn.GroupNorm(num_groups=8, num_channels=out_channels),
             nn.ReLU(inplace=True),
-            # Adding a second conv layer per block is standard U-Net practice
-            # to increase learning capacity per level.
+            # Adding a second conv layer per block increases learning capacity per level.
             nn.Conv2d(out_channels, out_channels, kernel_size=3, padding=1),
-            nn.BatchNorm2d(out_channels),
+            # nn.BatchNorm2d(out_channels),
+            nn.GroupNorm(num_groups=8, num_channels=out_channels),
             nn.ReLU(inplace=True)
         )
 
