@@ -4,7 +4,7 @@ import csv
 import torch
 import torch.nn as nn
 import torch.optim as optim
-from torch.utils.data import DataLoader
+from torch.utils.data import DataLoader, random_split
 from tqdm import tqdm
 
 from utils.constants import *
@@ -21,6 +21,21 @@ The criterion used is Binary Cross-Entropy Loss (BCELoss) since the model output
 The Adam optimizer is used for training.
 """
 
+def evaluate(model, dataloader, criterion, device):
+    model.eval()
+    total_loss = 0.0
+
+    with torch.no_grad():
+        for features, targets in dataloader:
+            features = features.to(device)
+            targets = targets.to(device)
+
+            outputs = model(features)
+            loss = criterion(outputs, targets)
+            total_loss += loss.item()
+        
+    return total_loss / len(dataloader)
+
 def train(session_name: str):
     # 1. Setup Device
     device = torch.device("cuda" if torch.cuda.is_available() else "mps" if torch.backends.mps.is_available() else "cpu")
@@ -34,13 +49,32 @@ def train(session_name: str):
 
     # 2. Load Data
     dataset = SpeechNoiseDataset(CLEAN_DIR, NOISE_DIR, snr_db=TARGET_SNR)
-    
-    dataloader = DataLoader(
-        dataset, 
-        batch_size=BATCH_SIZE, 
-        shuffle=True, 
+
+    val_ratio = 0.15
+    n_total = len(dataset)
+    n_val = int(n_total * val_ratio)
+    n_train = n_total - n_val
+
+    train_dataset, val_dataset = random_split(
+        dataset,
+        [n_train, n_val],
+        generator=torch.Generator().manual_seed(42)
+    )
+
+    train_loader = DataLoader(
+        train_dataset,
+        batch_size=BATCH_SIZE,
+        shuffle=True,
         collate_fn=pad_collate,
-        pin_memory=(device.type == 'cuda') 
+        pin_memory=(device.type == 'cuda' )
+    )
+
+    val_loader = DataLoader(
+        val_dataset,
+        batch_size=BATCH_SIZE,
+        shuffle=False,
+        collate_fn=pad_collate,
+        pin_memory=(device.type == 'cuda' )
     )
     
     # 3. Model & Loss
@@ -58,29 +92,37 @@ def train(session_name: str):
     # Write CSV header
     with open(log_file_path, mode='w', newline="") as f:
         writer = csv.writer(f)
-        writer.writerow(["epoch", "avg_loss"])
+        writer.writerow(["epoch", "train_loss", "val_loss"])
 
     print("Starting Training...")
-    model.train()
     
-    for epoch in range(EPOCHS): 
-        epoch_loss = 0
-        for batch_idx, (features, targets) in enumerate(tqdm(dataloader, desc=f"Epoch {epoch}")):
+    for epoch in range(EPOCHS):
+
+        model.train()
+        train_loss = 0
+
+        for batch_idx, (features, targets) in enumerate(tqdm(train_loader, desc=f"Epoch {epoch} [Train]")):
             features = features.to(device)
             targets = targets.to(device)
 
+            optimizer.zero_grad()
             outputs = model(features)
             loss = criterion(outputs, targets)
-
-            optimizer.zero_grad()
             loss.backward()
             optimizer.step()
             
-            epoch_loss += loss.item()
+            train_loss += loss.item()
         
-        avg_loss = epoch_loss / len(dataloader)
-        print(f"Epoch {epoch} Complete. Avg Loss: {avg_loss:.4f}")
+        train_loss /= len(train_loader)
+
+        val_loss = evaluate(model, val_loader, criterion, device)
         
+        print(
+            f"Epoch {epoch} | "
+            f"Train Loss: {train_loss:.4f} | "
+            f"Val Loss: {val_loss:.4f}"
+        )
+
         # Save checkpoint
         checkpoint_path = os.path.join(checkpoints_dir, f"denoise_cnn_epoch{epoch}.pth")
         torch.save(model.state_dict(), checkpoint_path)
@@ -88,7 +130,7 @@ def train(session_name: str):
         # Log to CSV
         with open(log_file_path, mode='a', newline="") as f:
             writer = csv.writer(f)
-            writer.writerow([epoch, avg_loss])
+            writer.writerow([epoch, train_loss, val_loss])
 
         # If final epoch, also save final model
         if epoch == EPOCHS - 1:
