@@ -17,7 +17,7 @@ The U-Net consists of:
 (a) Switched from BatchNorm to GroupNorm, potentially allowing for better generalization across varying speakers.
 More info: https://docs.pytorch.org/docs/stable/generated/torch.nn.GroupNorm.html
 
-(b) Used factorised kernels for to better model both time and frequency patterns in spectrograms.
+(b) Used factorised kernels to better model both time and frequency patterns in spectrograms.
 """
 
 class DenoiseUNet(nn.Module):
