@@ -35,13 +35,16 @@ def pad_collate(batch):
 
     # --- Waveform padding (ONLY if present) ---
     if batch[0].get("clean_audio") is not None:
-        max_wav_len = max(item["clean_audio"].shape[0] for item in batch)
+        # Ensure 1D waveforms
+        clean_wavs = [item["clean_audio"].view(-1) for item in batch]
+
+        max_wav_len = max(wav.shape[0] for wav in clean_wavs)
 
         wav_padded = torch.zeros(batch_size, max_wav_len)
 
-        for i, item in enumerate(batch):
-            curr_len = item["clean_audio"].shape[0]
-            wav_padded[i, :curr_len] = item["clean_audio"]
+        for i, wav in enumerate(clean_wavs):
+            curr_len = wav.shape[0]
+            wav_padded[i, :curr_len] = wav
 
         collated["clean_audio"] = wav_padded
     else:

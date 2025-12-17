@@ -21,8 +21,12 @@ The criterion used is Binary Cross-Entropy Loss (BCELoss) since the model output
 The Adam optimizer is used for training.
 """
 
-def l1_loss(x, y):
-    return torch.mean(torch.abs(x - y))
+def custom_loss(x, y, a, b, lambda_, gamma_):
+    # lambda BCE + gamma L1
+    bce = nn.BCELoss()(x, y)
+    l1 = nn.L1Loss()(a, b)
+    return lambda_ * bce + gamma_ * l1
+
 
 def evaluate(model, dataloader, criterion, device):
     model.eval()
@@ -85,7 +89,7 @@ def train(session_name: str):
     
     # 3. Model & Loss
     model = DenoiseUNet().to(device)
-    criterion = l1_loss
+    criterion = lambda x, y, a, b: custom_loss(x, y, a, b, lambda_=LAMBDA, gamma_=GAMMA)
     optimizer = optim.Adam(model.parameters(), lr=LEARNING_RATE)
 
     # Create checkpoint directory for this session
@@ -111,11 +115,12 @@ def train(session_name: str):
             features = batch["features"].to(device)
             mix_mag = batch["mix_mag"].to(device)
             clean_mag = batch["clean_mag"].to(device)
+            ibm = batch["ibm"].to(device)
 
             pred_mask = model(features)
             est_mag = pred_mask * mix_mag
 
-            loss = criterion(est_mag, clean_mag)
+            loss = criterion(pred_mask, ibm, est_mag, clean_mag)
 
             optimizer.zero_grad()
             loss.backward()

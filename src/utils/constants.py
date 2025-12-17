@@ -28,12 +28,18 @@ MODEL_DIR = ROOT / "data" / "models"
 
 LOG_DIR = ROOT / "experiments" / "logs"
 CHECKPOINT_DIR = ROOT / "experiments" / "checkpoints"
-MODEL_NAME = "batch32-thresh"
+MODEL_NAME = "batch32-magloss"
 SAVE_DENOISED = True
 SAVE_NOISY = True
 
 EPOCHS = 20
 BATCH_SIZE = 8
 LEARNING_RATE = 0.001
+
+LAMBDA = 1.0
+GAMMA = 0.33
+
+PHASE_MODE = "GL"  # Options: "raw", "GL", "vocoder"
+GL_ITERS = 64
 
 DEBUG = False
