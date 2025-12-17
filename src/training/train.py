@@ -27,10 +27,8 @@ def bce_loss(x, y):
 def l1_loss(x, y):
     return nn.L1Loss()(x, y)
 
-def custom_loss(x, y, a, b, lambda_, gamma_):
+def custom_loss(bce, l1, lambda_, gamma_):
     # lambda BCE + gamma L1
-    bce = nn.BCELoss()(x, y)
-    l1 = nn.L1Loss()(a, b)
     return lambda_ * bce + gamma_ * l1
 
 def evaluate(model, dataloader, criterion_bce, criterion_l1, device):
@@ -104,7 +102,6 @@ def train(session_name: str):
     
     # 3. Model & Loss
     model = DenoiseUNet().to(device)
-    criterion = lambda x, y, a, b: custom_loss(x, y, a, b, lambda_=LAMBDA, gamma_=GAMMA)
     optimizer = optim.Adam(model.parameters(), lr=LEARNING_RATE)
 
     # Create checkpoint directory for this session
@@ -151,7 +148,7 @@ def train(session_name: str):
                 avg_bce = alpha * avg_bce + (1 - alpha) * bce.item()
                 avg_l1 = alpha * avg_l1 + (1 - alpha) * l1.item()
 
-            loss = (bce / (avg_bce + 1e-8)) + (l1 / (avg_l1 + 1e-8))
+            loss = custom_loss((bce / (avg_bce + 1e-8)), (l1 / (avg_l1 + 1e-8)), LAMBDA, GAMMA)
             loss.backward()
             optimizer.step()
             

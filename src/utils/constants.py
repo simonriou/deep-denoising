@@ -33,11 +33,11 @@ SAVE_DENOISED = True
 SAVE_NOISY = True
 
 EPOCHS = 20
-BATCH_SIZE = 8
+BATCH_SIZE = 32
 LEARNING_RATE = 0.001
 
 LAMBDA = 1.0
-GAMMA = 0.33
+GAMMA = 2.5
 
 PHASE_MODE = "GL"  # Options: "raw", "GL", "vocoder"
 GL_ITERS = 64
