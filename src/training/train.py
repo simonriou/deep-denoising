@@ -21,6 +21,9 @@ The criterion used is Binary Cross-Entropy Loss (BCELoss) since the model output
 The Adam optimizer is used for training.
 """
 
+def l1_loss(x, y):
+    return torch.mean(torch.abs(x - y))
+
 def evaluate(model, dataloader, criterion, device):
     model.eval()
     total_loss = 0.0
@@ -28,18 +31,14 @@ def evaluate(model, dataloader, criterion, device):
     with torch.no_grad():
         for batch in tqdm(dataloader, desc="Evaluating", leave=False):
             features = batch["features"].to(device)
-            targets = batch["ibm"].to(device)
+            mix_mag = batch["mix_mag"].to(device)
+            clean_mag = batch["clean_mag"].to(device)
 
-            outputs = model(features)
-            loss = criterion(outputs, targets)
+            pred_mask = model(features)
+            est_mag = pred_mask * mix_mag
+
+            loss = criterion(est_mag, clean_mag)
             total_loss += loss.item()
-        # for features, targets in dataloader:
-        #     features = features.to(device)
-        #     targets = targets.to(device)
-
-        #     outputs = model(features)
-        #     loss = criterion(outputs, targets)
-        #     total_loss += loss.item()
         
     return total_loss / len(dataloader)
 
@@ -86,7 +85,7 @@ def train(session_name: str):
     
     # 3. Model & Loss
     model = DenoiseUNet().to(device)
-    criterion = nn.BCELoss() 
+    criterion = l1_loss
     optimizer = optim.Adam(model.parameters(), lr=LEARNING_RATE)
 
     # Create checkpoint directory for this session
@@ -108,25 +107,17 @@ def train(session_name: str):
         model.train()
         train_loss = 0
 
-        # for batch_idx, (features, targets) in enumerate(tqdm(train_loader, desc=f"Epoch {epoch} [Train]")):
-        #     features = features.to(device)
-        #     targets = targets.to(device)
-
-        #     optimizer.zero_grad()
-        #     outputs = model(features)
-        #     loss = criterion(outputs, targets)
-        #     loss.backward()
-        #     optimizer.step()
-            
-        #     train_loss += loss.item()
-
         for batch in tqdm(train_loader, desc=f"Epoch {epoch} [Train]"):
             features = batch["features"].to(device)
-            targets = batch["ibm"].to(device)
+            mix_mag = batch["mix_mag"].to(device)
+            clean_mag = batch["clean_mag"].to(device)
+
+            pred_mask = model(features)
+            est_mag = pred_mask * mix_mag
+
+            loss = criterion(est_mag, clean_mag)
 
             optimizer.zero_grad()
-            outputs = model(features)
-            loss = criterion(outputs, targets)
             loss.backward()
             optimizer.step()
             

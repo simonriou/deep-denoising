@@ -182,13 +182,13 @@ class SpeechNoiseDataset(Dataset):
         sample = {
             "features": features.unsqueeze(0),
             "ibm": ibm.unsqueeze(0),
-            "mix_mag": None,
+            "clean_mag": clean_mag.unsqueeze(0),
+            "mix_mag": mix_mag.unsqueeze(0),
             "mix_phase": None,
             "clean_audio": None
         }
 
         if self.mode == 'test':
-            sample["mix_mag"] = mix_mag.unsqueeze(0)
             sample["mix_phase"] = mix_phase.unsqueeze(0)
             sample["clean_audio"] = clean_audio.unsqueeze(0)
         
