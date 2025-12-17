@@ -7,21 +7,44 @@ This is used for batching in the data loader when dealing with audio data of var
 """
 
 def pad_collate(batch):
-    # Batch is list of tuples (feature, label)
-    # feature shape: [1, Freq, Time]
-    
-    # Find max time length in this batch
-    max_len = max([x[0].shape[2] for x in batch])
-    freq_bins = batch[0][0].shape[1]
-    
-    # Initialize batch tensors
     batch_size = len(batch)
-    features_padded = torch.zeros(batch_size, 1, freq_bins, max_len)
-    labels_padded = torch.zeros(batch_size, 1, freq_bins, max_len)
-    
-    for i, (feat, lbl) in enumerate(batch):
-        curr_len = feat.shape[2]
-        features_padded[i, :, :, :curr_len] = feat
-        labels_padded[i, :, :, :curr_len] = lbl
-        
-    return features_padded, labels_padded
+
+    collated = {}
+
+    # --- Spectrogram padding ---
+    max_spec_len = batch[0]["features"].shape[2]
+    freq_bins = batch[0]["features"].shape[1]
+
+    for key in ["features", "ibm", "mix_mag", "clean_mag", "mix_phase"]:
+        if batch[0].get(key) is None:
+            collated[key] = None
+            continue
+
+        max_spec_len = max(item[key].shape[2] for item in batch)
+
+        padded = torch.zeros(
+            batch_size, 1, freq_bins, max_spec_len,
+            dtype=batch[0][key].dtype
+        )
+
+        for i, item in enumerate(batch):
+            curr_len = item[key].shape[2]
+            padded[i, :, :, :curr_len] = item[key]
+
+        collated[key] = padded
+
+    # --- Waveform padding (ONLY if present) ---
+    if batch[0].get("clean_audio") is not None:
+        max_wav_len = max(item["clean_audio"].shape[0] for item in batch)
+
+        wav_padded = torch.zeros(batch_size, max_wav_len)
+
+        for i, item in enumerate(batch):
+            curr_len = item["clean_audio"].shape[0]
+            wav_padded[i, :curr_len] = item["clean_audio"]
+
+        collated["clean_audio"] = wav_padded
+    else:
+        collated["clean_audio"] = None
+
+    return collated

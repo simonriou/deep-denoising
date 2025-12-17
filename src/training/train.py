@@ -26,13 +26,20 @@ def evaluate(model, dataloader, criterion, device):
     total_loss = 0.0
 
     with torch.no_grad():
-        for features, targets in dataloader:
-            features = features.to(device)
-            targets = targets.to(device)
+        for batch in tqdm(dataloader, desc="Evaluating", leave=False):
+            features = batch["features"].to(device)
+            targets = batch["ibm"].to(device)
 
             outputs = model(features)
             loss = criterion(outputs, targets)
             total_loss += loss.item()
+        # for features, targets in dataloader:
+        #     features = features.to(device)
+        #     targets = targets.to(device)
+
+        #     outputs = model(features)
+        #     loss = criterion(outputs, targets)
+        #     total_loss += loss.item()
         
     return total_loss / len(dataloader)
 
@@ -101,9 +108,21 @@ def train(session_name: str):
         model.train()
         train_loss = 0
 
-        for batch_idx, (features, targets) in enumerate(tqdm(train_loader, desc=f"Epoch {epoch} [Train]")):
-            features = features.to(device)
-            targets = targets.to(device)
+        # for batch_idx, (features, targets) in enumerate(tqdm(train_loader, desc=f"Epoch {epoch} [Train]")):
+        #     features = features.to(device)
+        #     targets = targets.to(device)
+
+        #     optimizer.zero_grad()
+        #     outputs = model(features)
+        #     loss = criterion(outputs, targets)
+        #     loss.backward()
+        #     optimizer.step()
+            
+        #     train_loss += loss.item()
+
+        for batch in tqdm(train_loader, desc=f"Epoch {epoch} [Train]"):
+            features = batch["features"].to(device)
+            targets = batch["ibm"].to(device)
 
             optimizer.zero_grad()
             outputs = model(features)
