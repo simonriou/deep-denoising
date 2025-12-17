@@ -21,12 +21,17 @@ The criterion used is Binary Cross-Entropy Loss (BCELoss) since the model output
 The Adam optimizer is used for training.
 """
 
+def bce_loss(x, y):
+    return nn.BCELoss()(x, y)
+
+def l1_loss(x, y):
+    return nn.L1Loss()(x, y)
+
 def custom_loss(x, y, a, b, lambda_, gamma_):
     # lambda BCE + gamma L1
     bce = nn.BCELoss()(x, y)
     l1 = nn.L1Loss()(a, b)
     return lambda_ * bce + gamma_ * l1
-
 
 def evaluate(model, dataloader, criterion, device):
     model.eval()
@@ -105,25 +110,39 @@ def train(session_name: str):
         writer = csv.writer(f)
         writer.writerow(["epoch", "train_loss", "val_loss"])
 
+    # Initialize running averages for losses
+    avg_bce = 0.0
+    avg_l1 = 0.0
+    alpha = 0.99 # smoothing factor for running avg
+
     print("Starting Training...")
     
     for epoch in range(EPOCHS):
 
         model.train()
-        train_loss = 0
-
+        train_loss = 0.0
+        
         for batch in tqdm(train_loader, desc=f"Epoch {epoch} [Train]"):
             features = batch["features"].to(device)
             mix_mag = batch["mix_mag"].to(device)
             clean_mag = batch["clean_mag"].to(device)
             ibm = batch["ibm"].to(device)
 
-            pred_mask = model(features)
-            est_mag = pred_mask * mix_mag
-
-            loss = criterion(pred_mask, ibm, est_mag, clean_mag)
-
             optimizer.zero_grad()
+            pred_mask = model(features)
+            pred_mag = pred_mask * mix_mag
+
+            bce = bce_loss(pred_mask, ibm)
+            l1 = l1_loss(pred_mag, clean_mag)
+
+            if avg_bce == 0.0:
+                avg_bce = bce.item()
+                avg_l1 = l1.item()
+            else:
+                avg_bce = alpha * avg_bce + (1 - alpha) * bce.item()
+                avg_l1 = alpha * avg_l1 + (1 - alpha) * l1.item()
+
+            loss = (bce / (avg_bce + 1e-8)) + (l1 / (avg_l1 + 1e-8))
             loss.backward()
             optimizer.step()
             

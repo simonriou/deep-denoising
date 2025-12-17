@@ -28,7 +28,7 @@ MODEL_DIR = ROOT / "data" / "models"
 
 LOG_DIR = ROOT / "experiments" / "logs"
 CHECKPOINT_DIR = ROOT / "experiments" / "checkpoints"
-MODEL_NAME = "batch32-magloss"
+MODEL_NAME = "batch32-custom"
 SAVE_DENOISED = True
 SAVE_NOISY = True
 
