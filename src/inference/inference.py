@@ -3,18 +3,18 @@ import csv
 import torch
 import numpy as np
 from torch.utils.data import DataLoader
-from src.models.ConvRNNTemporalDenoiser import DenoiseUNet
-from training.dataset import SpeechNoiseDataset
+from models.ConvRNNTemporalDenoiser import ConvRNNTemporalDenoiser
+from training.dataset import SpeechNoiseDatasetTemporal
 from utils.constants import *
 from utils.save_wav import save_wav
 from utils.compute_snr import compute_snr
-from utils.pad_collate import pad_collate
 
 # --- 1. Prepare dataset ---
-dataset = SpeechNoiseDataset(
+dataset = SpeechNoiseDatasetTemporal(
     clean_dir=CLEAN_TEST_DIR,
     noise_dir=NOISE_TEST_DIR,
     snr_db=TARGET_SNR,
+    seq_len=SEQ_LEN,  # must match training
     mode="test"
 )
 
@@ -22,14 +22,13 @@ dataset = SpeechNoiseDataset(
 loader = DataLoader(
     dataset,
     batch_size=1,
-    shuffle=False,
-    collate_fn=pad_collate
+    shuffle=False
 )
 
 # --- 3. Load model ---
 device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
-model = DenoiseUNet().to(device)
-model.load_state_dict(torch.load(MODEL_DIR / f"{MODEL_NAME}.pth", map_location=device))
+model = ConvRNNTemporalDenoiser().to(device)
+model.load_state_dict(torch.load(os.path.join(MODEL_DIR, f"{MODEL_NAME}.pth"), map_location=device))
 model.eval()
 
 # --- 4. Output directory ---
@@ -39,26 +38,14 @@ os.makedirs(denoised_dir, exist_ok=True)
 # --- 5. Inference loop ---
 with torch.no_grad():
     for idx, batch in enumerate(loader):
-        features    = batch["features"].to(device)  # [B, 1, F, T]
-        clean_audio = batch["clean_audio"][0].cpu().numpy()
+        mixture = batch["mixture"].to(device).unsqueeze(-1)   # [B, T, 1]
+        clean_audio = batch["clean"].numpy()[0]
 
-        # Predict complex mask: [B, 2, F, T]
-        pred_complex = model(features)
+        # Predict clean waveform
+        pred_clean = model(mixture)                           # [B, T, 1]
+        enhanced_audio = pred_clean[0, :, 0].cpu().numpy()    # [T]
 
-        # Convert to complex STFT: real + i*imag
-        # Assuming channel 0 = real, channel 1 = imag
-        pred_complex = pred_complex.permute(0, 2, 3, 1)  # [B, F, T, 2]
-        enhanced_stft = torch.complex(pred_complex[..., 0], pred_complex[..., 1])  # [B, F, T]
-
-        # Inverse STFT to waveform
-        enhanced_audio = torch.istft(
-            enhanced_stft[0],
-            n_fft=N_FFT,
-            hop_length=HOP_LENGTH,
-            win_length=WIN_LENGTH,
-            length=batch["clean_audio"].shape[1]
-        ).cpu().numpy()
-
+        # Clip to valid range
         enhanced_audio = np.clip(enhanced_audio, -1.0, 1.0)
 
         # --- Save audio ---
@@ -67,10 +54,10 @@ with torch.no_grad():
 
         # --- Compute SNR ---
         min_len = min(len(clean_audio), len(enhanced_audio))
-        clean_audio = clean_audio[:min_len]
-        enhanced_audio = enhanced_audio[:min_len]
+        clean_audio_trim = clean_audio[:min_len]
+        enhanced_audio_trim = enhanced_audio[:min_len]
 
-        snr_enhanced = compute_snr(clean_audio, enhanced_audio)
+        snr_enhanced = compute_snr(clean_audio_trim, enhanced_audio_trim)
         print(f"File {idx}: Enhanced SNR = {snr_enhanced:.2f} dB")
 
         # --- Logging ---
