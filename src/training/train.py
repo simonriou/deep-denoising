@@ -73,12 +73,17 @@ def evaluate(model, dataloader, criterion_bce, criterion_l1_linear, criterion_l1
 
             total_bce += bce_loss.item()
             total_l1  += l1_loss.item()
+            total_l1_linear += l1_linear_loss.item()
+            total_l1_mel += l1_mel_loss.item()
             n_batches += 1
 
     avg_bce = total_bce / n_batches
     avg_l1  = total_l1 / n_batches
 
-    return avg_bce, avg_l1
+    avg_l1_linear = total_l1_linear / n_batches
+    avg_l1_mel = total_l1_mel / n_batches
+
+    return avg_bce, avg_l1, avg_l1_linear, avg_l1_mel
 
 def train(session_name: str):
     # 1. Setup Device
@@ -136,7 +141,7 @@ def train(session_name: str):
     # Write CSV header
     with open(log_file_path, mode='w', newline="") as f:
         writer = csv.writer(f)
-        writer.writerow(["epoch", "train_loss", "val_bce", "val_l1"])
+        writer.writerow(["epoch", "train_loss", "val_bce", "val_l1_linear", "val_l1_mel"])
 
     # Initialize running averages for losses
     avg_bce = 0.0
@@ -183,12 +188,13 @@ def train(session_name: str):
         
         train_loss /= len(train_loader)
 
-        val_bce, val_l1 = evaluate(model, val_loader, criterion_bce=bce_loss, criterion_l1_linear=l1_loss, criterion_l1_mel=mel_l1_loss, device=device)
+        val_bce, val_l1, val_l1_linear, val_l1_mel = evaluate(model, val_loader, criterion_bce=bce_loss, criterion_l1_linear=l1_loss, criterion_l1_mel=mel_l1_loss, device=device)
         
         print(
             f"Epoch {epoch} | "
             f"Train Loss: {train_loss:.4f} | "
-            f"Val BCE: {val_bce:.4f}, Val L1: {val_l1:.4f}"
+            f"Val BCE: {val_bce:.4f}, Val L1: {val_l1:.4f} | "
+            f"Val L1 Linear: {val_l1_linear}, Val L1 Mel: {val_l1_mel:.4f}"
         )
 
         # Save checkpoint

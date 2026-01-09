@@ -42,7 +42,7 @@ GAMMA = 2.5
 N_MELS = 80
 ALPHA = 0.5  # Weight for mel-scale L1 loss
 
-PHASE_MODE = "GL"  # Options: "raw", "GL", "vocoder"
+PHASE_MODE = "raw"  # Options: "raw", "GL", "vocoder"
 GL_ITERS = 64
 
 DEBUG = False
