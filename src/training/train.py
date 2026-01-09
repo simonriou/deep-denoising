@@ -47,7 +47,7 @@ def custom_loss(bce, l1, lambda_, gamma_):
     # lambda BCE + gamma L1
     return lambda_ * bce + gamma_ * l1
 
-def evaluate(model, dataloader, criterion_bce, linear_l1, mel_l1, device):
+def evaluate(model, dataloader, criterion_bce, criterion_l1_linear, criterion_l1_mel, device):
     model.eval()
     total_bce = 0.0
     total_l1  = 0.0
@@ -67,8 +67,8 @@ def evaluate(model, dataloader, criterion_bce, linear_l1, mel_l1, device):
 
             bce_loss = criterion_bce(pred_mask, ibm_target)
 
-            l1_linear_loss  = linear_l1(pred_mag, clean_mag)
-            l1_mel_loss = mel_l1(pred_mag, clean_mag, mel_fb)
+            l1_linear_loss  = criterion_l1_linear(pred_mag, clean_mag)
+            l1_mel_loss = criterion_l1_mel(pred_mag, clean_mag, mel_fb)
             l1_loss = l1_linear_loss + ALPHA * l1_mel_loss
 
             total_bce += bce_loss.item()
@@ -160,8 +160,8 @@ def train(session_name: str):
             pred_mask = model(features)
             pred_mag = pred_mask * mix_mag
 
-            print(pred_mag.shape)
-            print(mel_fb.shape)
+            # print(pred_mag.shape)
+            # print(mel_fb.shape)
 
             bce = bce_loss(pred_mask, ibm)
             l1_linear = l1_loss(pred_mag, clean_mag)
