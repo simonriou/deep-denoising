@@ -51,6 +51,8 @@ def evaluate(model, dataloader, criterion_bce, criterion_l1_linear, criterion_l1
     model.eval()
     total_bce = 0.0
     total_l1  = 0.0
+    total_l1_linear = 0.0
+    total_l1_mel = 0.0
     n_batches = 0
 
     mel_fb = torch.load(f"{ROOT}/src/training/mel_fb_{N_FFT}_{N_MELS}_{SAMPLE_RATE}.pt").to(device)
@@ -67,7 +69,7 @@ def evaluate(model, dataloader, criterion_bce, criterion_l1_linear, criterion_l1
 
             bce_loss = criterion_bce(pred_mask, ibm_target)
 
-            l1_linear_loss  = criterion_l1_linear(pred_mag, clean_mag)
+            l1_linear_loss = criterion_l1_linear(pred_mag, clean_mag)
             l1_mel_loss = criterion_l1_mel(pred_mag, clean_mag, mel_fb)
             l1_loss = l1_linear_loss + ALPHA * l1_mel_loss
 
