@@ -186,16 +186,24 @@ def train(session_name: str):
             pred_mask = model(features)
             pred_mag = pred_mask * mix_mag
 
-            complex_spec_denoised = pred_mag.squeeze(0).squeeze(0) * torch.exp(1j * mix_phase.squeeze(0).squeeze(0))
+            reconstructed_audio = []
 
-            reconstructed_audio = torch.istft(
-                complex_spec_denoised,
-                n_fft=N_FFT,
-                hop_length=HOP_LENGTH,
-                win_length=WIN_LENGTH,
-                window=torch.hann_window(WIN_LENGTH).to(device),
-                length=batch["clean_audio"].shape[1]
-            )
+            for b in range(pred_mag.size[0]):
+                mag = pred_mag[b, 0]
+                phase = mix_phase[b, 0] # remove channel dim
+                complex_spec = mag * torch.exp(1j * phase)
+
+                audio = torch.istft(
+                    complex_spec,
+                    n_fft=N_FFT,
+                    hop_length=HOP_LENGTH,
+                    win_length=WIN_LENGTH,
+                    window=torch.hann_window(WIN_LENGTH).to(device),
+                    length=clean_audio.shape[1]
+                )
+                reconstructed_audio.append(audio)
+
+            reconstructed_audio = torch.stack(reconstructed_audio, dim=0).to(device)
 
             # print(pred_mag.shape)
             # print(mel_fb.shape)
