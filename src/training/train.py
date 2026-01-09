@@ -188,7 +188,7 @@ def train(session_name: str):
 
             reconstructed_audio = []
 
-            for b in range(pred_mag.size[0]):
+            for b in range(pred_mag.shape[0]):
                 mag = pred_mag[b, 0]
                 phase = mix_phase[b, 0] # remove channel dim
                 complex_spec = mag * torch.exp(1j * phase)
