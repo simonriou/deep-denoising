@@ -166,9 +166,10 @@ def train(session_name: str):
     log_file_path = os.path.join(log_file_dir, "training_log.csv")
 
     # Write CSV header
+    print(f"Logging training progress to {log_file_path}")
     with open(log_file_path, mode='w', newline="") as f:
         writer = csv.writer(f)
-        writer.writerow(["epoch", "train_loss", "val_bce", "val_l1_linear", "val_l1_mel", "val_wave"])
+        writer.writerow(["epoch", "train_loss", "val_bce", "val_l1", "val_l1_linear", "val_l1_mel", "val_waveform"])
 
     # Initialize running averages for losses
     avg_bce = 0.0
@@ -246,7 +247,7 @@ def train(session_name: str):
             f"Epoch {epoch} | "
             f"Train Loss: {train_loss:.4f} | "
             f"Val BCE: {val_bce:.4f}, Val L1: {val_l1:.4f} | "
-            f"Val L1 Linear: {val_l1_linear:.4f}, Val L1 Mel: {val_l1_mel:.4f} |"
+            f"Val L1 Linear: {val_l1_linear:.4f}, Val L1 Mel: {val_l1_mel:.4f} | "
             f"Val Waveform: {val_waveform:.4f}"
         )
 
@@ -257,7 +258,7 @@ def train(session_name: str):
         # Log to CSV
         with open(log_file_path, mode='a', newline="") as f:
             writer = csv.writer(f)
-            writer.writerow([epoch, train_loss, val_bce, val_l1])
+            writer.writerow([epoch, train_loss, val_bce, val_l1, val_l1_linear, val_l1_mel, val_waveform])
 
         # If final epoch, also save final model
         if epoch == EPOCHS - 1:
