@@ -36,9 +36,10 @@ EPOCHS = 20
 BATCH_SIZE = 32
 LEARNING_RATE = 0.001
 
-LAMBDA = 1.0
-GAMMA = 0.75
-ZETA = 10.0
+LAMBDA = 1.0 # BCE
+GAMMA = 0.75 # L1 Linear
+OMEGA = 10.0 # L1 Mel
+ZETA = 10.0 # L1 Waveform
 
 N_MELS = 80
 ALPHA = 10.0  # Weight for mel-scale L1 loss

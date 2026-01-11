@@ -19,7 +19,7 @@ def plot_losses(csv_path, output_path=None):
 
 
     for col in loss_columns:
-        if col == "train_loss":
+        if col == "train_loss" or col == "val_l1":
             continue
         elif col == "val_l1_mel" or col == "val_waveform":
             plt.plot(

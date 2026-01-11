@@ -43,9 +43,9 @@ def bce_loss(x, y):
 def l1_loss(x, y):
     return nn.L1Loss()(x, y)
 
-def custom_loss(bce, l1, waveform, lambda_, gamma_, zeta_):
+def custom_loss(bce, l1_linear, l1_mel, waveform, lambda_, gamma_, omega_, zeta_):
     # lambda BCE + gamma L1 + zeta Waveform
-    return lambda_ * bce + gamma_ * l1 + zeta_ * waveform
+    return lambda_ * bce + gamma_ * l1_linear + omega_ * l1_mel + zeta_ * waveform
 
 def evaluate(model, dataloader, criterion_bce, criterion_l1_linear, criterion_l1_mel, device):
     model.eval()
@@ -169,7 +169,7 @@ def train(session_name: str):
     print(f"Logging training progress to {log_file_path}")
     with open(log_file_path, mode='w', newline="") as f:
         writer = csv.writer(f)
-        writer.writerow(["epoch", "train_loss", "val_bce", "val_l1", "val_l1_linear", "val_l1_mel", "val_waveform"])
+        writer.writerow(["epoch", "train_loss", "val_bce", "val_l1_linear", "val_l1_mel", "val_waveform"])
 
     # Initialize running averages for losses
     avg_bce = 0.0
@@ -226,14 +226,16 @@ def train(session_name: str):
 
             if avg_bce == 0.0:
                 avg_bce = bce.item()
-                avg_l1 = l1.item()
+                avg_l1_linear = l1_linear.item()
+                avg_l1_mel = l1_mel.item()
                 avg_waveform = waveform_loss.item()
             else:
                 avg_bce = alpha * avg_bce + (1 - alpha) * bce.item()
-                avg_l1 = alpha * avg_l1 + (1 - alpha) * l1.item()
+                avg_l1_linear = alpha * avg_l1_linear + (1 - alpha) * l1_linear.item()
+                avg_l1_mel = alpha * avg_l1_mel + (1 - alpha) * l1_mel.item()
                 avg_waveform = alpha * avg_waveform + (1 - alpha) * waveform_loss.item()
 
-            loss = custom_loss((bce / (avg_bce + 1e-8)), (l1 / (avg_l1 + 1e-8)), (waveform_loss / (avg_waveform + 1e-8)), LAMBDA, GAMMA, ZETA)
+            loss = custom_loss((bce / (avg_bce + 1e-8)), (l1_linear / (avg_l1_linear + 1e-8)), (l1_mel / (avg_l1_mel + 1e-8)), (waveform_loss / (avg_waveform + 1e-8)), LAMBDA, GAMMA, OMEGA, ZETA)
             loss.backward()
             optimizer.step()
             
@@ -241,14 +243,12 @@ def train(session_name: str):
         
         train_loss /= len(train_loader)
 
-        val_bce, val_l1, val_l1_linear, val_l1_mel, val_waveform = evaluate(model, val_loader, criterion_bce=bce_loss, criterion_l1_linear=l1_loss, criterion_l1_mel=mel_l1_loss, device=device)
+        val_bce, val_l1_linear, val_l1_mel, val_waveform = evaluate(model, val_loader, criterion_bce=bce_loss, criterion_l1_linear=l1_loss, criterion_l1_mel=mel_l1_loss, device=device)
         
         print(
             f"Epoch {epoch} | "
             f"Train Loss: {train_loss:.4f} | "
-            f"Val BCE: {val_bce:.4f}, Val L1: {val_l1:.4f} | "
-            f"Val L1 Linear: {val_l1_linear:.4f}, Val L1 Mel: {val_l1_mel:.4f} | "
-            f"Val Waveform: {val_waveform:.4f}"
+            f"Val BCE: {val_bce:.4f}, Val L1 Linear: {val_l1_linear:.4f}, Val L1 Mel: {val_l1_mel:.4f}, Val Waveform: {val_waveform:.4f}"
         )
 
         # Save checkpoint
@@ -258,7 +258,7 @@ def train(session_name: str):
         # Log to CSV
         with open(log_file_path, mode='a', newline="") as f:
             writer = csv.writer(f)
-            writer.writerow([epoch, train_loss, val_bce, val_l1, val_l1_linear, val_l1_mel, val_waveform])
+            writer.writerow([epoch, train_loss, val_bce, val_l1_linear, val_l1_mel, val_waveform])
 
         # If final epoch, also save final model
         if epoch == EPOCHS - 1:
