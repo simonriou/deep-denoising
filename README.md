@@ -1,5 +1,7 @@
 # DenoiseNet: A U-Net Mask-Based Speech Denoising Model
 ## Overview
+**A demo of the model's performances is available at the [docs site](https://simonriou.github.io/DenoiseNet/).**
+
 - Model: **DenoiseNet**, a U-Net mask estimator trained on log-magnitude STFT features with multi-objective losses (BCE on IBM, L1 on linear and mel magnitudes, waveform L1).
 - Training corpus: ~2.5 hours of English speech mixed with babble noise at controlled SNR.
 - Inference: streaming-ready; runs in (near) real time on a standard laptop CPU.
