@@ -16,6 +16,12 @@
     <h2>Speech Denoising – Audio Sample Results</h2>
 
     <p class="intro">
+        DenoiseNet is a U-Net based deep learning model designed for speech denoising tasks. It was trained on <b>2.5 hours of</b> 
+        english speech data from the LibriSpeech dataset, corrupted with various babble noise samples at 0 dB SNR.
+        The model provides state-of-the-art denoising performance while maintaining low computational complexity,
+        making it <b>suitable for real-time applications</b> (the model runs in ~0.1 seconds on 3-10 second audio clips
+        on a standard machine).
+        <br>
         This page presents qualitative audio results of our DenoiseNet model for three speech samples corrupted
         by babble noise at <b>0 dB SNR</b>. For each sample, the same noise realization is used across all
         degraded and enhanced versions. A clean reference signal is provided for
@@ -144,7 +150,7 @@
 
         <div class="audio-grid">
             <div class="audio-item">
-                <span>Noisy</span>
+                <span>Noisy - <b> 0 dB SNR</b></span>
                 <audio controls>
                     <source src="audio/F1noisy_LJ003-0011_noise.wav" type="audio/wav">
                 </audio>
