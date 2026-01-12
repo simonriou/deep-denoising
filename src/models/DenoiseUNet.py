@@ -31,7 +31,7 @@ class DenoiseUNet(nn.Module):
         self.enc3 = self._make_block(32, 64)
         
         # --- Bottleneck (The deepest representation) ---
-        self.bottleneck = self._make_block(64, 128)
+        self.bottleneck = self._make_block(64, 128, True)
         
         # --- Decoder (Upsampling) ---
         # Input channels = current_layer + skip_connection_channels
@@ -46,12 +46,17 @@ class DenoiseUNet(nn.Module):
         # Pooling definition
         self.pool = nn.MaxPool2d(2, 2)
 
-    def _make_block(self, in_channels, out_channels):
+    def _make_block(self, in_channels, out_channels, is_bottleneck=False):
         """Helper to create a Conv -> BatchNorm -> ReLU block"""
+        dilation = (1, 1)
+        pad = (0, 1)
+        if is_bottleneck:
+            dilation = (1, 2)  # Wider receptive field in time for bottleneck
+            pad = (0, 2) # Matching padding for dilation
         return nn.Sequential(
             # nn.Conv2d(in_channels, out_channels, kernel_size=3, padding=1),
             nn.Conv2d(in_channels, out_channels, kernel_size=(3,1), padding=(1,0)),
-            nn.Conv2d(out_channels, out_channels, kernel_size=(1,3), padding=(0,1)),
+            nn.Conv2d(out_channels, out_channels, kernel_size=(1,3), padding=pad, dilation=dilation),
             # nn.BatchNorm2d(out_channels),
             nn.GroupNorm(num_groups=8, num_channels=out_channels),
             nn.ReLU(inplace=True),
